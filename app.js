@@ -181,11 +181,21 @@ function dismissCard(direction) {
   topCard.classList.add(classMap[direction]);
   console.log(`${labelMap[direction]}: ${profiles[0]?.name}`);
 
-  topCard.addEventListener("animationend", () => {
+  // Idempotent finalizer — safe to call from both animationend and fallback
+  let finalized = false;
+  let fallbackTimer = null;
+
+  function finalizeDismiss() {
+    if (finalized) return;
+    finalized = true;
+    clearTimeout(fallbackTimer);
     profiles.shift();
     renderDeck();
     busy = false;
-  }, { once: true });
+  }
+
+  topCard.addEventListener("animationend", finalizeDismiss, { once: true });
+  fallbackTimer = setTimeout(finalizeDismiss, 700);
 }
 
 // -------------------
