@@ -199,6 +199,8 @@ function attachGestures(card) {
 
   function pointerStart(e) {
     if (busy) return;
+    // Prevent browser image drag / text selection so mousemove keeps firing
+    if (!e.touches) e.preventDefault();
     const pt = e.touches ? e.touches[0] : e;
     startX = pt.clientX;
     startY = pt.clientY;
@@ -206,6 +208,12 @@ function attachGestures(card) {
     dy = 0;
     dragging = true;
     card.classList.add("dragging");
+
+    // Attach move/up on document only while dragging, then clean up
+    if (!e.touches) {
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    }
   }
 
   function pointerMove(e) {
@@ -255,8 +263,8 @@ function attachGestures(card) {
   }
 
   // Double-tap detection
-  function handleTap(e) {
-    if (dragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) return; // was a drag, not a tap
+  function handleTap() {
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) return; // was a drag, not a tap
     const now = Date.now();
     if (now - lastTap < 350) {
       openGallery(profiles[0]);
@@ -264,15 +272,21 @@ function attachGestures(card) {
     lastTap = now;
   }
 
-  // Mouse events
+  // Mouse: add move/up only during drag, then remove
+  function onMouseMove(e) { pointerMove(e); }
+  function onMouseUp(e) {
+    document.removeEventListener("mousemove", onMouseMove);
+    document.removeEventListener("mouseup", onMouseUp);
+    pointerEnd();
+    handleTap();
+  }
+
   card.addEventListener("mousedown", pointerStart);
-  document.addEventListener("mousemove", pointerMove);
-  document.addEventListener("mouseup", (e) => { pointerEnd(); handleTap(e); });
 
   // Touch events
   card.addEventListener("touchstart", pointerStart, { passive: true });
   card.addEventListener("touchmove", pointerMove, { passive: false });
-  card.addEventListener("touchend", (e) => { pointerEnd(); handleTap(e); });
+  card.addEventListener("touchend", () => { pointerEnd(); handleTap(); });
 }
 
 // -------------------

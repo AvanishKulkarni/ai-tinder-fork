@@ -111,9 +111,9 @@ body {
   transition: transform 220ms ease, opacity 220ms ease, filter 220ms ease;
 }
 
-.card:nth-child(1) { transform: translateY(0) scale(1); }
-.card:nth-child(2) { transform: translateY(10px) scale(0.985); filter: brightness(0.95); }
-.card:nth-child(3) { transform: translateY(20px) scale(0.97); filter: brightness(0.9); }
+.card:nth-child(1) { transform: translateY(0) scale(1); z-index: 3; }
+.card:nth-child(2) { transform: translateY(10px) scale(0.985); filter: brightness(0.95); z-index: 2; }
+.card:nth-child(3) { transform: translateY(20px) scale(0.97); filter: brightness(0.9); z-index: 1; }
 
 .card__media {
   height: 70%;
@@ -269,6 +269,7 @@ body {
 .gallery__dot.active { background: #fff; }
 
 /* ---- Dragging cursor ---- */
+.card { user-select: none; -webkit-user-select: none; }
 .card.dragging { cursor: grabbing; transition: none; }
 
 /* ---- Note removal (unused now) ---- */
