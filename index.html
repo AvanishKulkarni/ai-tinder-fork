@@ -33,10 +33,14 @@
         <button class="ctrl ctrl--like" id="likeBtn" title="Like">♥</button>
       </div>
 
-      <p class="note">
-        <strong>Note:</strong> Swiping and button actions need to be implemented.
-      </p>
     </main>
+
+    <!-- Photo gallery modal (double-tap) -->
+    <div class="gallery-overlay" id="galleryOverlay">
+      <button class="gallery__close" id="galleryClose" aria-label="Close gallery">✕</button>
+      <div class="gallery__track" id="galleryTrack"></div>
+      <div class="gallery__dots" id="galleryDots"></div>
+    </div>
 
     <footer class="app__footer">
       AI all the things!
