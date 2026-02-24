@@ -218,13 +218,13 @@ body {
 .card__stamp--super { left: 50%; transform: translateX(-50%) rotate(0deg); color: var(--super); border-color: var(--super); }
 
 /* ---- Swipe fly-off animations ---- */
-.card--fly-right { animation: flyRight 400ms ease-in forwards; }
-.card--fly-left  { animation: flyLeft  400ms ease-in forwards; }
-.card--fly-up    { animation: flyUp    400ms ease-in forwards; }
+.card--fly-right { animation: fly-right 400ms ease-in forwards; }
+.card--fly-left  { animation: fly-left  400ms ease-in forwards; }
+.card--fly-up    { animation: fly-up    400ms ease-in forwards; }
 
-@keyframes flyRight { to { transform: translateX(150%) rotate(25deg); opacity: 0; } }
-@keyframes flyLeft  { to { transform: translateX(-150%) rotate(-25deg); opacity: 0; } }
-@keyframes flyUp    { to { transform: translateY(-150%) rotate(0deg); opacity: 0; } }
+@keyframes fly-right { to { transform: translateX(150%) rotate(25deg); opacity: 0; } }
+@keyframes fly-left  { to { transform: translateX(-150%) rotate(-25deg); opacity: 0; } }
+@keyframes fly-up    { to { transform: translateY(-150%) rotate(0deg); opacity: 0; } }
 
 /* ---- Gallery overlay ---- */
 .gallery-overlay {
