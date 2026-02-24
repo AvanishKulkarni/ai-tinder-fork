@@ -268,7 +268,7 @@ function attachGestures(card) {
     } else {
       // Snap back
       card.style.transform = "";
-      card.querySelectorAll(".card__stamp").forEach((s) => (s.style.opacity = "0"));
+      card.querySelectorAll(".card__stamp").forEach((s) => { s.style.opacity = "0"; });
     }
   }
 
