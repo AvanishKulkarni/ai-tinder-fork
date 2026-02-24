@@ -113,9 +113,10 @@ body {
   user-select: none;
 }
 
-.card:nth-child(1) { transform: translateY(0) scale(1); }
-.card:nth-child(2) { transform: translateY(10px) scale(0.985); filter: brightness(0.95); }
-.card:nth-child(3) { transform: translateY(20px) scale(0.97); filter: brightness(0.9); }
+.card:nth-child(1) { z-index: 3; transform: translateY(0) scale(1); }
+.card:nth-child(2) { z-index: 2; transform: translateY(10px) scale(0.985); filter: brightness(0.95); pointer-events: none; }
+.card:nth-child(3) { z-index: 1; transform: translateY(20px) scale(0.97); filter: brightness(0.9); pointer-events: none; }
+.card:nth-child(n+4) { z-index: 0; visibility: hidden; pointer-events: none; }
 
 .card__media {
   height: 70%;

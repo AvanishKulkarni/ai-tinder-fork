@@ -212,8 +212,12 @@ function attachSwipeHandlers() {
   let lastTapTime = 0;
 
   card.addEventListener("pointerdown", onPointerDown);
+  card.addEventListener("pointermove", onPointerMove);
+  card.addEventListener("pointerup", onPointerUp);
 
   function onPointerDown(e) {
+    e.preventDefault();
+
     // Double-tap detection
     const now = Date.now();
     if (now - lastTapTime < 300) {
@@ -230,8 +234,6 @@ function attachSwipeHandlers() {
     currentY = 0;
     card.classList.add("dragging");
     card.setPointerCapture(e.pointerId);
-    document.addEventListener("pointermove", onPointerMove);
-    document.addEventListener("pointerup", onPointerUp);
   }
 
   function onPointerMove(e) {
@@ -258,8 +260,6 @@ function attachSwipeHandlers() {
   function onPointerUp() {
     if (!isDragging) return;
     isDragging = false;
-    document.removeEventListener("pointermove", onPointerMove);
-    document.removeEventListener("pointerup", onPointerUp);
     card.classList.remove("dragging");
 
     if (currentY < -SWIPE_UP_THRESHOLD && Math.abs(currentY) > Math.abs(currentX)) {
