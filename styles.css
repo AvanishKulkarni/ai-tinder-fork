@@ -109,6 +109,8 @@ body {
   transform: translateY(0) scale(1);
   will-change: transform;
   transition: transform 220ms ease, opacity 220ms ease, filter 220ms ease;
+  touch-action: none;
+  user-select: none;
 }
 
 .card:nth-child(1) { transform: translateY(0) scale(1); }
@@ -195,6 +197,86 @@ body {
   text-align: center;
   margin: 0;
   font-size: 14px;
+}
+
+/* Swipe stamp overlays */
+.card__stamp {
+  position: absolute;
+  top: 18%;
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  padding: 8px 18px;
+  border-radius: 12px;
+  border: 4px solid;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transform: rotate(-18deg);
+}
+.card__stamp--like {
+  right: 20px;
+  color: var(--like);
+  border-color: var(--like);
+  transform: rotate(-18deg);
+}
+.card__stamp--nope {
+  left: 20px;
+  color: var(--nope);
+  border-color: var(--nope);
+  transform: rotate(18deg);
+}
+.card__stamp--super {
+  left: 50%;
+  translate: -50% 0;
+  color: var(--super);
+  border-color: var(--super);
+  transform: rotate(0deg);
+}
+
+/* Dragging state */
+.card.dragging {
+  transition: none;
+  cursor: grabbing;
+  z-index: 100;
+}
+
+/* Fly-out animations */
+.card.swipe-right {
+  transition: transform 400ms ease, opacity 400ms ease;
+  transform: translateX(150%) rotate(30deg) !important;
+  opacity: 0;
+}
+.card.swipe-left {
+  transition: transform 400ms ease, opacity 400ms ease;
+  transform: translateX(-150%) rotate(-30deg) !important;
+  opacity: 0;
+}
+.card.swipe-up {
+  transition: transform 400ms ease, opacity 400ms ease;
+  transform: translateY(-150%) scale(0.8) !important;
+  opacity: 0;
+}
+
+/* Photo gallery dots */
+.card__dots {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  translate: -50% 0;
+  display: flex;
+  gap: 4px;
+  z-index: 11;
+}
+.card__dot {
+  width: 28px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.35);
+}
+.card__dot--active {
+  background: #fff;
 }
 
 @media (max-width: 520px) {

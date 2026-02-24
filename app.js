@@ -53,6 +53,10 @@ function imgFor(seed) {
 function generateProfiles(count = 12) {
   const profiles = [];
   for (let i = 0; i < count; i++) {
+    // Give each profile multiple photos for the gallery
+    const photos = Array.from(new Set(
+      Array.from({length: 3 + Math.floor(Math.random() * 3)}, () => sample(UNSPLASH_SEEDS))
+    )).map(imgFor);
     profiles.push({
       id: `p_${i}_${Date.now().toString(36)}`,
       name: sample(FIRST_NAMES),
@@ -61,7 +65,9 @@ function generateProfiles(count = 12) {
       title: sample(JOBS),
       bio: sample(BIOS),
       tags: pickTags(),
-      img: imgFor(sample(UNSPLASH_SEEDS)),
+      img: photos[0],
+      photos,
+      photoIndex: 0,
     });
   }
   return profiles;
@@ -85,11 +91,33 @@ function renderDeck() {
   profiles.forEach((p, idx) => {
     const card = document.createElement("article");
     card.className = "card";
+    card.dataset.profileId = p.id;
+
+    // Photo gallery dots
+    if (p.photos.length > 1) {
+      const dots = document.createElement("div");
+      dots.className = "card__dots";
+      p.photos.forEach((_, i) => {
+        const dot = document.createElement("span");
+        dot.className = "card__dot" + (i === p.photoIndex ? " card__dot--active" : "");
+        dots.appendChild(dot);
+      });
+      card.appendChild(dots);
+    }
+
+    // Stamp overlays
+    ["like", "nope", "super"].forEach((type) => {
+      const stamp = document.createElement("span");
+      stamp.className = `card__stamp card__stamp--${type}`;
+      stamp.textContent = type === "super" ? "SUPER LIKE" : type.toUpperCase();
+      card.appendChild(stamp);
+    });
 
     const img = document.createElement("img");
     img.className = "card__media";
-    img.src = p.img;
+    img.src = p.photos[p.photoIndex];
     img.alt = `${p.name} — profile photo`;
+    img.draggable = false;
 
     const body = document.createElement("div");
     body.className = "card__body";
@@ -124,6 +152,7 @@ function renderDeck() {
     deckEl.appendChild(card);
   });
 
+  attachSwipeHandlers();
   deckEl.removeAttribute("aria-busy");
 }
 
@@ -132,17 +161,135 @@ function resetDeck() {
   renderDeck();
 }
 
-// Controls (intentionally not implemented)
-likeBtn.addEventListener("click", () => {
-  console.log("Like clicked.");
-});
-nopeBtn.addEventListener("click", () => {
-  console.log("Nope clicked.");
-});
-superLikeBtn.addEventListener("click", () => {
-  console.log("Super Like clicked.");
-});
+// -------------------
+// Card dismissal
+// -------------------
+function getTopCard() {
+  return deckEl.querySelector(".card:first-child");
+}
+
+function dismissTopCard(action) {
+  const card = getTopCard();
+  if (!card || card.classList.contains("swipe-left") ||
+      card.classList.contains("swipe-right") || card.classList.contains("swipe-up")) return;
+
+  const classMap = { like: "swipe-right", nope: "swipe-left", superlike: "swipe-up" };
+  const stampMap = { like: "like", nope: "nope", superlike: "super" };
+
+  // Flash the stamp
+  const stamp = card.querySelector(`.card__stamp--${stampMap[action]}`);
+  if (stamp) stamp.style.opacity = 1;
+
+  card.classList.add(classMap[action]);
+
+  card.addEventListener("transitionend", () => {
+    card.remove();
+    profiles.shift();
+    if (profiles.length === 0) resetDeck();
+    else attachSwipeHandlers();
+  }, { once: true });
+}
+
+// -------------------
+// Action buttons
+// -------------------
+likeBtn.addEventListener("click", () => dismissTopCard("like"));
+nopeBtn.addEventListener("click", () => dismissTopCard("nope"));
+superLikeBtn.addEventListener("click", () => dismissTopCard("superlike"));
 shuffleBtn.addEventListener("click", resetDeck);
+
+// -------------------
+// Swipe gestures & double-tap
+// -------------------
+const SWIPE_THRESHOLD = 80;
+const SWIPE_UP_THRESHOLD = 60;
+
+function attachSwipeHandlers() {
+  const card = getTopCard();
+  if (!card) return;
+
+  let startX, startY, currentX, currentY, isDragging = false;
+  let lastTapTime = 0;
+
+  card.addEventListener("pointerdown", onPointerDown);
+
+  function onPointerDown(e) {
+    // Double-tap detection
+    const now = Date.now();
+    if (now - lastTapTime < 300) {
+      cyclePhoto();
+      lastTapTime = 0;
+      return;
+    }
+    lastTapTime = now;
+
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    currentX = 0;
+    currentY = 0;
+    card.classList.add("dragging");
+    card.setPointerCapture(e.pointerId);
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp);
+  }
+
+  function onPointerMove(e) {
+    if (!isDragging) return;
+    currentX = e.clientX - startX;
+    currentY = e.clientY - startY;
+
+    const rotate = currentX * 0.08;
+    card.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${rotate}deg)`;
+
+    // Update stamp opacity based on direction
+    const likeStamp = card.querySelector(".card__stamp--like");
+    const nopeStamp = card.querySelector(".card__stamp--nope");
+    const superStamp = card.querySelector(".card__stamp--super");
+
+    const xRatio = Math.min(Math.abs(currentX) / SWIPE_THRESHOLD, 1);
+    const yRatio = Math.min(Math.abs(currentY) / SWIPE_UP_THRESHOLD, 1);
+
+    if (likeStamp) likeStamp.style.opacity = currentX > 0 ? xRatio : 0;
+    if (nopeStamp) nopeStamp.style.opacity = currentX < 0 ? xRatio : 0;
+    if (superStamp) superStamp.style.opacity = currentY < 0 ? yRatio : 0;
+  }
+
+  function onPointerUp() {
+    if (!isDragging) return;
+    isDragging = false;
+    document.removeEventListener("pointermove", onPointerMove);
+    document.removeEventListener("pointerup", onPointerUp);
+    card.classList.remove("dragging");
+
+    if (currentY < -SWIPE_UP_THRESHOLD && Math.abs(currentY) > Math.abs(currentX)) {
+      dismissTopCard("superlike");
+    } else if (currentX > SWIPE_THRESHOLD) {
+      dismissTopCard("like");
+    } else if (currentX < -SWIPE_THRESHOLD) {
+      dismissTopCard("nope");
+    } else {
+      // Snap back
+      card.style.transform = "";
+      card.querySelectorAll(".card__stamp").forEach(s => s.style.opacity = 0);
+    }
+  }
+
+  function cyclePhoto() {
+    const profile = profiles[0];
+    if (!profile || profile.photos.length <= 1) return;
+    profile.photoIndex = (profile.photoIndex + 1) % profile.photos.length;
+
+    const img = card.querySelector(".card__media");
+    if (img) img.src = profile.photos[profile.photoIndex];
+
+    // Update dots
+    const dots = card.querySelectorAll(".card__dot");
+    dots.forEach((dot, i) => {
+      dot.classList.toggle("card__dot--active", i === profile.photoIndex);
+    });
+  }
+}
 
 // Boot
 resetDeck();
