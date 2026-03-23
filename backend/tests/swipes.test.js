@@ -3,9 +3,13 @@
 const { describe, it, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
+const os = require('node:os');
+const path = require('node:path');
 
 // Use an in-memory database for tests
 process.env.DB_PATH = ':memory:';
+// Use a temp file for VAPID keys so tests don't write to the source tree
+process.env.VAPID_KEYS_PATH = path.join(os.tmpdir(), 'vapid_keys_swipes_test.json');
 
 const app = require('../server');
 

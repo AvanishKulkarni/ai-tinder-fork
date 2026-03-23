@@ -9,10 +9,18 @@ const router = express.Router();
 const VALID_ACTIONS = new Set(['like', 'nope', 'super_like']);
 
 router.post('/', (req, res) => {
-  const { actorId, targetId, action } = req.body ?? {};
+  let { actorId, targetId, action } = req.body ?? {};
 
   if (!actorId || !targetId || !action) {
     return res.status(400).json({ error: 'actorId, targetId, and action are required.' });
+  }
+  if (typeof actorId !== 'string' || typeof targetId !== 'string') {
+    return res.status(400).json({ error: 'actorId and targetId must be non-empty strings.' });
+  }
+  actorId = actorId.trim();
+  targetId = targetId.trim();
+  if (!actorId || !targetId) {
+    return res.status(400).json({ error: 'actorId and targetId must be non-empty strings.' });
   }
   if (actorId === targetId) {
     return res.status(400).json({ error: 'actorId and targetId must be different.' });
@@ -21,18 +29,18 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'action must be one of: like, nope, super_like.' });
   }
 
-  // Reject duplicate swipe for the same pair
-  const existing = db
-    .prepare('SELECT id FROM swipe_actions WHERE actor_id = ? AND target_id = ?')
-    .get(actorId, targetId);
-  if (existing) {
-    return res.status(409).json({ error: 'Duplicate swipe.', swipeId: existing.id });
-  }
-
+  // Use INSERT OR IGNORE so concurrent duplicate requests don't race past the SELECT
   const swipeId = uuidv4();
-  db.prepare(
-    'INSERT INTO swipe_actions (id, actor_id, target_id, action) VALUES (?, ?, ?, ?)'
+  const insertResult = db.prepare(
+    'INSERT OR IGNORE INTO swipe_actions (id, actor_id, target_id, action) VALUES (?, ?, ?, ?)'
   ).run(swipeId, actorId, targetId, action);
+
+  if (insertResult.changes === 0) {
+    const existingConcurrent = db
+      .prepare('SELECT id FROM swipe_actions WHERE actor_id = ? AND target_id = ?')
+      .get(actorId, targetId);
+    return res.status(409).json({ error: 'Duplicate swipe.', swipeId: existingConcurrent?.id });
+  }
 
   const target = db.prepare('SELECT name FROM profiles WHERE id = ?').get(targetId);
   console.log(`[swipe] ${new Date().toISOString()} | actor=${actorId.slice(0, 8)} | action=${action.padEnd(10)} | target=${targetId.slice(0, 8)} (${target?.name ?? 'unknown'})`);
@@ -56,13 +64,26 @@ router.post('/', (req, res) => {
         .get(targetId, actorId);
 
       if (!blocked) {
-        const matchId = uuidv4();
         const isSuperLike =
           action === 'super_like' || reciprocal.action === 'super_like' ? 1 : 0;
 
-        db.prepare(
-          'INSERT INTO matches (id, user1_id, user2_id, is_super_like) VALUES (?, ?, ?, ?)'
-        ).run(matchId, actorId, targetId, isSuperLike);
+        // Canonicalize user ordering to prevent duplicate matches from concurrent swipes
+        const user1Id = actorId < targetId ? actorId : targetId;
+        const user2Id = actorId < targetId ? targetId : actorId;
+
+        const existingMatch = db
+          .prepare('SELECT id FROM matches WHERE user1_id = ? AND user2_id = ?')
+          .get(user1Id, user2Id);
+
+        const matchId = existingMatch
+          ? existingMatch.id
+          : (() => {
+              const id = uuidv4();
+              db.prepare(
+                'INSERT INTO matches (id, user1_id, user2_id, is_super_like) VALUES (?, ?, ?, ?)'
+              ).run(id, user1Id, user2Id, isSuperLike);
+              return id;
+            })();
 
         const matchedUser = db
           .prepare('SELECT id, name, img FROM profiles WHERE id = ?')

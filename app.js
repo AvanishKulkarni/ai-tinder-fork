@@ -223,7 +223,7 @@ function cyclePhoto(card) {
 // -------------------
 // Backend API
 // -------------------
-const API_BASE = "http://localhost:3000";
+const API_BASE = window.location.origin;
 
 // -------------------
 // User identity (persisted in localStorage so push subscriptions are tied to this browser)
@@ -279,6 +279,13 @@ async function setupPushNotifications() {
   try {
     const registration = await navigator.serviceWorker.register("/sw.js");
     console.log("Push: service worker registered.");
+
+    // Avoid re-subscribing if already subscribed
+    const existingSub = await registration.pushManager.getSubscription();
+    if (existingSub) {
+      console.log("Push: already subscribed.");
+      return;
+    }
 
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
@@ -474,4 +481,15 @@ shuffleBtn.addEventListener("click",   resetDeck);
 
 // Boot
 resetDeck();
-setupPushNotifications();
+
+// Defer push setup until first user interaction — browsers may block permission
+// prompts that are not triggered by a user gesture.
+let pushSetupDone = false;
+function setupPushOnce() {
+  if (pushSetupDone) return;
+  pushSetupDone = true;
+  setupPushNotifications();
+}
+likeBtn.addEventListener("click", setupPushOnce);
+nopeBtn.addEventListener("click", setupPushOnce);
+superLikeBtn.addEventListener("click", setupPushOnce);

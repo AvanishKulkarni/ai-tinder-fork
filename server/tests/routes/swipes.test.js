@@ -80,6 +80,24 @@ describe('POST /api/swipes — equivalence partitions', () => {
     expect(res.body.error).toMatch(/action/);
   });
 
+  // P3b: non-string actorId (e.g., number) returns 400
+  test('P3b: non-string actorId returns 400', async () => {
+    const res = await request(app)
+      .post('/api/swipes')
+      .send({ actorId: 123, targetId: 'u2', action: 'like' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/non-empty strings/);
+  });
+
+  // P3c: blank-whitespace actorId returns 400 after trimming
+  test('P3c: whitespace-only actorId returns 400', async () => {
+    const res = await request(app)
+      .post('/api/swipes')
+      .send({ actorId: '   ', targetId: 'u2', action: 'like' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/non-empty strings/);
+  });
+
   // P4: actorId equals targetId (self-swipe)
   test('P4: actorId === targetId returns 400', async () => {
     const res = await request(app)

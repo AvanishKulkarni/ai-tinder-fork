@@ -28,16 +28,16 @@ self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-      const url = event.notification.data.url;
+      const targetUrl = new URL(event.notification.data.url, self.location.origin).href;
       // Focus an existing window if one is open
       for (const client of windowClients) {
-        if (client.url === url && 'focus' in client) {
+        if (client.url === targetUrl && 'focus' in client) {
           return client.focus();
         }
       }
       // Otherwise open a new window
       if (clients.openWindow) {
-        return clients.openWindow(url);
+        return clients.openWindow(targetUrl);
       }
     })
   );

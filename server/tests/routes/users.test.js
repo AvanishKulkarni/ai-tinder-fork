@@ -87,22 +87,23 @@ describe('POST /api/users — equivalence partitions', () => {
     expect(row.bio).toBe('Just browsing!');
   });
 
-  // P6: new user with existing profiles — some auto-likes are seeded
+  // P6: new user with existing profiles — auto-likes are seeded (deterministic via mock)
   test('P6: existing profiles auto-like the new user (seeding)', async () => {
-    // Insert 10 profiles that will potentially auto-like new user
     for (let i = 0; i < 10; i++) {
       db.prepare(
         "INSERT INTO profiles (id, name, age, tags, photos) VALUES (?, ?, 25, '[]', '[]')"
       ).run(`existing-${i}`, `User${i}`);
     }
+    // Math.random() < 0.6 → mock to 0.5 so every existing profile auto-likes
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
     const res = await request(app).post('/api/users').send({});
+    randomSpy.mockRestore();
+
     const { userId } = res.body;
     const likeCount = db
       .prepare("SELECT COUNT(*) AS cnt FROM swipe_actions WHERE target_id = ? AND action = 'like'")
       .get(userId).cnt;
-    // With ~60% probability and 10 profiles, we expect at least 1 auto-like
-    // (probabilistic but extremely unlikely to get 0 from 10 with p=0.6)
-    expect(likeCount).toBeGreaterThan(0);
+    expect(likeCount).toBe(10);
   });
 
   // P7: new user with no existing profiles — no auto-likes seeded
