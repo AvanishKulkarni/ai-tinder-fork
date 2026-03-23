@@ -1,0 +1,4 @@
+node_modules/
+tinder.db
+tinder.db-shm
+tinder.db-wal
